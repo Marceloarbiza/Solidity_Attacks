@@ -77,7 +77,7 @@ contract Ataque {
 }
 ```
 
-Este contrato malintencionado tiene una función llamada "ataque()" que corrobora que el atacante tenga ether y llama a la función "depositar()" ya que la función "retirar()" requiere que este tenga balance y luego llama a la función "retirar()" nuevamente antes de que se actualice el balance en el contrato vulnerable. 
+Este contrato malintencionado tiene una función llamada "ataque()" que corrobora que se haya enviado ether suficiente para realizar el ataque, hará un depósito llamando a la función "depositar()" ya que la función "retirar()" requiere que este tenga balance y luego llama a la función "retirar()" nuevamente antes de que se actualice el balance en el contrato vulnerable. 
 
 Finalmente, el contrato malintencionado también tiene una función de fallback que se activa cuando se envía Ether al contrato sin especificar una función. Esta función comprueba el saldo del contrato "WalletInsegura.sol" y llama a la función "retirar()" si hay suficiente saldo disponible. Esto se repite hasta que el contrato malintencionado agota los fondos del contrato "WalletInsegura.sol".
 
