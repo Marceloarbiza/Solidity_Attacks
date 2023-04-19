@@ -123,3 +123,4 @@ contract WalletSegura {
 En este contrato, se ha agregado una variable booleana "bloqueado" para evitar que las funciones se llamen repetitivamente. La función "retirar()" ahora tiene un modificador personalizado "noReentrada()" que bloquea la función "retirar()" si ya está en ejecución. El modificador establece la variable "bloqueado" en verdadero al inicio de la ejecución de la función y la establece en falso al finalizar. Esto garantiza que la función "retirar()" no se llame repetidamente hasta que se complete la transacción original.
 
 
+Link: youtube.com/watch?v=rrvU3DSbXKo
