@@ -84,6 +84,7 @@ Para protegerse contra el ataque de reentrancia, los desarrolladores deben asegu
 
 Aquí está el código completo del contrato seguro "WalletSegura.sol" que utiliza el patrón de bloqueo de estado:
 
+**WalletSegura.sol**
 ```
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.0;
