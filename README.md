@@ -75,6 +75,47 @@ contract Ataque {
 }
 ```
 
-Este contrato malintencionado tiene una función llamada "ataque()" que corrobora que el atacante tenga al menos llama a la función 
+Este contrato malintencionado tiene una función llamada "ataque()" que corrobora que el atacante tenga ether y llama a la función "depositar()" ya que la función "retirar()" requiere que este tenga balance y luego llama a la función "retirar()" nuevamente antes de que se actualice el balance en el contrato vulnerable. 
+
+Finalmente, el contrato malintencionado también tiene una función de fallback que se activa cuando se envía Ether al contrato sin especificar una función. Esta función comprueba el saldo del contrato "WalletInsegura.sol" y llama a la función "retirar()" si hay suficiente saldo disponible. Esto se repite hasta que el contrato malintencionado agota los fondos del contrato "WalletInsegura.sol".
+
+
+Para protegerse contra el ataque de reentrancia, los desarrolladores deben asegurarse de que las funciones críticas del contrato inteligente estén diseñadas para evitar llamadas repetitivas o llamadas a otras funciones que puedan ser explotadas por un atacante malintencionado. Una forma común de hacerlo es usar el patrón de bloqueo de estado, que bloquea el estado del contrato inteligente durante la ejecución de una función para evitar que otras funciones se llamen antes de que la transacción original se complete.
+
+Aquí está el código completo del contrato seguro "WalletSegura.sol" que utiliza el patrón de bloqueo de estado:
+
+```
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.0;
+
+contract WalletSegura {
+    bool internal bloqueado;
+    mapping (address => uint256) private balances;
+
+    function balance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function depositar() external payable {
+        balances[msg.sender] += msg.value;
+    }
+
+    function retirar() external noReentrada{
+        require(balances[msg.sender] > 0, "Insufficient balance");
+        balances[msg.sender] = 0;
+        (bool success, ) = payable(msg.sender).call{value: balances[msg.sender]}("");
+        require(success, "Error al enviar eth");
+    }
+
+    modifier proteger() {
+        require(!bloqueado, "Llamada de ataque");
+        bloqueado = true;
+        _;
+        bloqueado = false;
+    }
+}
+```
+
+En este contrato, se ha agregado una variable booleana "bloqueado" para evitar que las funciones se llamen repetitivamente. La función "retirar()" ahora tiene un modificador personalizado "noReentrada()" que bloquea la función "retirar()" si ya está en ejecución. El modificador establece la variable "bloqueado" en verdadero al inicio de la ejecución de la función y la establece en falso al finalizar. Esto garantiza que la función "withdraw()" no se llame repetidamente hasta que se complete la transacción original.
 
 
