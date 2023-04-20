@@ -124,4 +124,38 @@ En este contrato, se ha agregado una variable booleana "bloqueado" para evitar q
 
 
 Link: https://www.youtube.com/watch?v=rrvU3DSbXKo  
-Repo: https://github.com/meta-dapp/reentracy
+Repo: https://github.com/meta-dapp/reentracy  
+
+
+
+### Integer overflow/underflow attack  
+
+En Solidity, las variables enteras tienen un rango de valores permitidos, que depende del tipo de variable. Por ejemplo, el tipo **uint8** tiene un rango de valores permitidos de 0 a 255, mientras que el tipo **uint256** tiene un rango de valores permitidos de 0 a 2^256-1.
+
+El ataque de desbordamiento de enteros se produce cuando se manipula una variable para que su valor exceda el rango permitido. Esto puede provocar que la variable se desborde y tome un valor incorrecto, lo que puede causar comportamientos inesperados o incluso el bloqueo del contrato.
+
+Por ejemplo, considera el siguiente contrato de Solidity que permite a un usuario apostar en un juego de dados:
+
+```
+contract JuegoDeDados {
+    uint256 public balance;
+    
+    function apostar(uint8 _numero) public payable {
+        require(msg.value > 0);
+        require(_numero >= 1 && _numero <= 6);
+        uint8 dado = uint8(keccak256(abi.encodePacked(block.timestamp, msg.sender))) % 6 + 1;
+        if (dado == _numero) {
+            balance += msg.value * 5;
+            msg.sender.transfer(msg.value * 5);
+        } else {
+            balance += msg.value;
+        }
+    }
+}
+```
+
+En este contrato, el usuario puede apostar en un número del 1 al 6. Si el número apostado coincide con el número que sale en el dado, el usuario gana cinco veces su apuesta. De lo contrario, el usuario pierde su apuesta. El valor de la apuesta se agrega al balance del contrato.
+
+Sin embargo, hay un problema de desbordamiento de enteros en la línea balance += msg.value * 5;. Si el balance actual es mayor o igual a 2^256-5 y un usuario apuesta la cantidad máxima permitida de ether (que es 2^256-1 wei), entonces el resultado del producto msg.value * 5 excederá el rango permitido y provocará un desbordamiento. Esto hará que el balance tome un valor incorrecto y puede provocar que el contrato no funcione correctamente.
+
+Para evitar este problema, se podría utilizar una librería segura de manejo de enteros, como la librería SafeMath de OpenZeppelin, que se encarga de verificar los límites de los enteros antes de realizar operaciones con ellos. También es importante realizar pruebas exhaustivas del código para identificar y corregir posibles vulnerabilidades.
