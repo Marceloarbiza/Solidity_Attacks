@@ -1,6 +1,6 @@
 # Solidity_Attacks
 
-### Reentrancy Attack  
+### :boom: Reentrancy Attack  
 
 Para comprender mejor el ataque de reentrancia, primero debemos entender el funcionamiento de las funciones y las transacciones en Solidity. Cuando se llama a una función en un contrato inteligente, se inicia una nueva transacción en la red de Ethereum. Durante esta transacción, el contrato inteligente realiza ciertas operaciones y puede llamar a otras funciones o enviar Ether a otros contratos o direcciones. Cuando se llama a una función en un contrato inteligente, cualquier código adicional que se ejecute dentro de esa función se ejecuta en el mismo contexto de la transacción original.
 
@@ -128,7 +128,7 @@ Repo: https://github.com/meta-dapp/reentracy
 
 
 
-### Integer overflow/underflow attack  
+### :boom: Integer overflow/underflow attack  
 
 En Solidity, las variables enteras tienen un rango de valores permitidos, que depende del tipo de variable. Por ejemplo, el tipo **uint8** tiene un rango de valores permitidos de 0 a 255, mientras que el tipo **uint256** tiene un rango de valores permitidos de 0 a 2^256-1.
 
@@ -156,6 +156,6 @@ contract JuegoDeDados {
 
 En este contrato, el usuario puede apostar en un número del 1 al 6. Si el número apostado coincide con el número que sale en el dado, el usuario gana cinco veces su apuesta. De lo contrario, el usuario pierde su apuesta. El valor de la apuesta se agrega al balance del contrato.
 
-Sin embargo, hay un problema de desbordamiento de enteros en la línea balance += msg.value * 5;. Si el balance actual es mayor o igual a 2^256-5 y un usuario apuesta la cantidad máxima permitida de ether (que es 2^256-1 wei), entonces el resultado del producto msg.value * 5 excederá el rango permitido y provocará un desbordamiento. Esto hará que el balance tome un valor incorrecto y puede provocar que el contrato no funcione correctamente.
+Sin embargo, hay un problema de desbordamiento de enteros en la línea **balance += msg.value * 5**;. Si el balance actual es mayor o igual a 2^256-5 y un usuario apuesta la cantidad máxima permitida de ether (que es 2^256-1 wei), entonces el resultado del producto **msg.value * 5** excederá el rango permitido y provocará un desbordamiento. Esto hará que el balance tome un valor incorrecto y puede provocar que el contrato no funcione correctamente.
 
 Para evitar este problema, se podría utilizar una librería segura de manejo de enteros, como la librería SafeMath de OpenZeppelin, que se encarga de verificar los límites de los enteros antes de realizar operaciones con ellos. También es importante realizar pruebas exhaustivas del código para identificar y corregir posibles vulnerabilidades.
