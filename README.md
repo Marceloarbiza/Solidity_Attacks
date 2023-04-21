@@ -158,4 +158,47 @@ En este contrato, el usuario puede apostar en un número del 1 al 6. Si el núme
 
 Sin embargo, hay un problema de desbordamiento de enteros en la línea **balance += msg.value * 5**;. Si el balance actual es mayor o igual a 2^256-5 y un usuario apuesta la cantidad máxima permitida de ether (que es 2^256-1 wei), entonces el resultado del producto **msg.value * 5** excederá el rango permitido y provocará un desbordamiento. Esto hará que el balance tome un valor incorrecto y puede provocar que el contrato no funcione correctamente.
 
-Para evitar este problema, se podría utilizar una librería segura de manejo de enteros, como la librería SafeMath de OpenZeppelin, que se encarga de verificar los límites de los enteros antes de realizar operaciones con ellos. También es importante realizar pruebas exhaustivas del código para identificar y corregir posibles vulnerabilidades.
+Para evitar este problema, se podría utilizar una librería segura de manejo de enteros, como la librería SafeMath de OpenZeppelin, que se encarga de verificar los límites de los enteros antes de realizar operaciones con ellos. También es importante realizar pruebas exhaustivas del código para identificar y corregir posibles vulnerabilidades.  
+
+
+## :boom: Frontrunner attack
+
+El ataque frontrunner en Solidity es una técnica que un atacante puede utilizar para manipular el estado de un contrato antes de que se ejecute una transacción realizada por otro usuario. En resumen, el atacante envía una transacción con una oferta de gas superior y una función que aprovecha el estado del contrato antes de que la transacción original se ejecute, lo que le permite obtener una ventaja sobre el usuario original.
+
+**Car.sol**  
+
+```
+contract Car {
+    uint public price;
+    address public owner;
+
+    constructor() public {
+        owner = msg.sender;
+        price = 0;
+    }
+
+    function setPrice(uint _price) public {
+        require(msg.sender == owner);
+        price = _price;
+    }
+
+    function buy() public payable {
+        require(msg.value == price);
+        owner = msg.sender;
+    }
+}
+```
+
+En el ejemplo del contrato inteligente, el ataque se puede ejecutar de la siguiente manera:
+
+El propietario del auto establece el precio del auto en 10 ETH con la función setPrice(). Sin embargo, su transacción aún no se ha incluido en la red.
+
+El atacante monitorea la red y detecta que hay una transacción pendiente para establecer el precio del auto en 10 ETH.
+
+El atacante envía una transacción con una comisión alta para ejecutar la función setPrice() antes que la transacción del propietario. Debido a la comisión alta, la transacción del atacante se incluirá en la red antes que la del propietario.
+
+Ahora que el precio del auto se ha establecido en 10 ETH, el atacante envía otra transacción con una comisión aún más alta para ejecutar la función buy() y comprar el auto a un precio más bajo de lo que realmente vale.
+
+La transacción del atacante se incluye en la red antes que cualquier otra transacción pendiente para comprar el auto, por lo que el atacante compra el auto por menos de 10 ETH.
+
+En resumen, el ataque se ejecuta aprovechando la ventaja que tiene el atacante de conocer la próxima transacción que se ejecutará en la red y enviando transacciones con comisiones más altas para asegurarse de que su transacción se incluya antes que la original.
