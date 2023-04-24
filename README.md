@@ -322,6 +322,8 @@ contract EtherGame {
 
 Aquí hemos creado una nueva variable, depositedEther, que realiza un seguimiento del ether depositado conocido, y es esta variable la que utilizamos para realizar nuestras exigencias y pruebas. Ya no tenemos ninguna referencia a **this.balance**.
 
+Link: https://medium.com/hackernoon/hackpedia-16-solidity-hacks-vulnerabilities-their-fixes-and-real-world-examples-f3210eba5148
+
 
 ### :nerd_face: Función selfDestruct  
 
