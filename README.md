@@ -161,7 +161,7 @@ Sin embargo, hay un problema de desbordamiento de enteros en la línea **balance
 Para evitar este problema, se podría utilizar una librería segura de manejo de enteros, como la librería SafeMath de OpenZeppelin, que se encarga de verificar los límites de los enteros antes de realizar operaciones con ellos. También es importante realizar pruebas exhaustivas del código para identificar y corregir posibles vulnerabilidades.  
 
 
-## :boom: Forcefully Send Ether with selfdestruct 
+## :boom: Frontrunner attack  
 
 El ataque frontrunner en Solidity es una técnica que un atacante puede utilizar para manipular el estado de un contrato antes de que se ejecute una transacción realizada por otro usuario. En resumen, el atacante envía una transacción con una oferta de gas superior y una función que aprovecha el estado del contrato antes de que la transacción original se ejecute, lo que le permite obtener una ventaja sobre el usuario original.
 
@@ -203,7 +203,7 @@ La transacción del atacante se incluye en la red antes que cualquier otra trans
 
 En resumen, el ataque se ejecuta aprovechando la ventaja que tiene el atacante de conocer la próxima transacción que se ejecutará en la red y enviando transacciones con comisiones más altas para asegurarse de que su transacción se incluya antes que la original.
 
-## :boom: Frontrunner attack  
+## :boom: Forcefully Send Ether with selfdestruct 
 
 Este tipo de ataque se basa en la función selfdestruct() de Solidity, que permite a un contrato eliminar su propio código y enviar todos sus fondos a una dirección de destino.  
 
