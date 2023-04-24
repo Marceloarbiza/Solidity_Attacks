@@ -205,107 +205,122 @@ En resumen, el ataque se ejecuta aprovechando la ventaja que tiene el atacante d
 
 ## :boom: Forcefully Send Ether with selfdestruct 
 
-Este tipo de ataque se basa en la función selfdestruct() de Solidity, que permite a un contrato eliminar su propio código y enviar todos sus fondos a una dirección de destino.  
+Por lo general, cuando se envía ether a un contrato, este debe ejecutar la función fallback o alguna otra función descrita en el contrato. Hay dos excepciones a esto, donde el ether puede existir en un contrato sin haber ejecutado ningún código. Los contratos que dependen de la ejecución de código para cada ether enviado al contrato pueden ser vulnerables a ataques donde el ether se envía forzosamente a un contrato.
+
+### La vulnerabilidad
+Una técnica común de programación defensiva que es útil para aplicar transiciones de estado correctas o validar operaciones es la verificación de invariantes. Esta técnica implica definir un conjunto de invariantes (métricas o parámetros que no deben cambiar) y comprobar que estos invariantes permanezcan sin cambios después de una o muchas operaciones. Esto es típicamente un buen diseño, siempre y cuando los invariantes que se están comprobando sean, de hecho, invariantes. Un ejemplo de un invariante es el totalSupply de un token ERC20 de emisión fija. Como ninguna función debería modificar este invariante, se podría agregar una verificación a la función transfer() que asegure que el totalSupply permanezca sin modificaciones para garantizar que la función está funcionando como se espera.
+
+Hay un "invariante" aparente en particular que puede tentar a los desarrolladores a usarlo, pero que de hecho puede ser manipulado por usuarios externos, independientemente de las reglas establecidas en el contrato inteligente. Este es el ether actual almacenado en el contrato. A menudo, cuando los desarrolladores aprenden Solidity por primera vez, tienen la idea errónea de que un contrato solo puede aceptar o obtener ether a través de funciones pagables (payable). Esta idea errónea puede llevar a contratos que tienen suposiciones falsas sobre el saldo de ether dentro de ellos, lo que puede llevar a una variedad de vulnerabilidades. La prueba irrefutable de esta vulnerabilidad es el uso (incorrecto) de this.balance. Como veremos, los usos incorrectos de this.balance pueden llevar a vulnerabilidades graves de este tipo.
+
+Hay dos formas en las que el ether puede ser enviado (forzosamente) a un contrato sin usar una función pagable o ejecutar ningún código en el contrato. Estas se enumeran a continuación.
+
+### Self Destruct / Suicide
+Cualquier contrato puede implementar la función **selfdestruct(address)**, que elimina todo el bytecode de la dirección del contrato y envía todo el ether almacenado allí a la dirección especificada como parámetro. Si esta dirección especificada también es un contrato, no se llama a ninguna función (incluida la función fallback). ***Por lo tanto, la función selfdestruct() se puede usar para enviar ether forzosamente a cualquier contrato, independientemente de cualquier código que pueda existir en el contrato. Esto incluye contratos sin funciones pagables (payable)***. Esto significa que cualquier atacante puede crear un contrato con una función selfdestruct(), enviar ether a él, llamar a selfdestruct(address contrato objetivo) y forzar el envío de ether a un contrato objetivo.
+
+### Pre-sent Ether
+La segunda forma en que un contrato puede obtener ether sin usar una función de autenticación o llamar a ninguna función pagable es precargar la dirección del contrato con ether. Las direcciones de contrato son deterministas, de hecho, la dirección se calcula a partir del hash de la dirección que crea el contrato y el nonce de transacción que crea el contrato. es decir, de la forma: dirección = sha3(rlp.encode([dirección_de_cuenta, nonce_de_transacción])). Esto significa que cualquier persona puede calcular cuál será la dirección del contrato antes de que se cree y así enviar ether a esa dirección. Cuando se crea el contrato, tendrá un saldo de ether no nulo.
+
+Examinemos algunos peligros que pueden surgir con el conocimiento anterior.
+
+Consideremos el contrato demasiado simple,
 
 ```
-pragma solidity ^0.8.0;
+1 contract EtherGame {
+2     
+3     uint public payoutMileStone1 = 3 ether;
+4     uint public mileStone1Reward = 2 ether;
+5     uint public payoutMileStone2 = 5 ether;
+6     uint public mileStone2Reward = 3 ether; 
+7     uint public finalMileStone = 10 ether; 
+8     uint public finalReward = 5 ether; 
+9     
+10     mapping(address => uint) redeemableEther;
+11     // users pay 0.5 ether. At specific milestones, credit their accounts
+12     function play() public payable {
+13         require(msg.value == 0.5 ether); // each play is 0.5 ether
+14         uint currentBalance = this.balance + msg.value;
+15         // ensure no players after the game as finished
+16         require(currentBalance <= finalMileStone);
+17         // if at a milestone credit the players account
+18         if (currentBalance == payoutMileStone1) {
+19             redeemableEther[msg.sender] += mileStone1Reward;
+20         }
+21         else if (currentBalance == payoutMileStone2) {
+22             redeemableEther[msg.sender] += mileStone2Reward;
+23         }
+24         else if (currentBalance == finalMileStone ) {
+25             redeemableEther[msg.sender] += finalReward;
+26         }
+27         return;
+28     }
+29    
+30     function claimReward() public {
+31         // ensure the game is complete
+32         require(this.balance == finalMileStone);
+33         // ensure there is a reward to give
+34         require(redeemableEther[msg.sender] > 0); 
+35         redeemableEther[msg.sender] = 0;
+36         msg.sender.transfer(redeemableEther[msg.sender]);
+37     }
+38  }
+```
 
+Este contrato representa un juego simple (que naturalmente invoca condiciones de carrera) en el que los jugadores envían 0.5 ether al contrato con la esperanza de ser el jugador que alcance uno de tres hitos primero. Los hitos están denominados en ether. El primero en alcanzar el hito puede reclamar una parte del ether cuando el juego haya terminado. El juego termina cuando se alcanza el hito final (10 ether) y los usuarios pueden reclamar sus recompensas.
+
+Los problemas con el contrato EtherGame provienen del mal uso de **this.balance** tanto en las líneas [14] (y por asociación [16]) como en la línea [32]. Un atacante malintencionado podría enviar forzosamente una pequeña cantidad de ether, digamos 0.1 ether, a través de la función selfdestruct() (discutida anteriormente) para evitar que futuros jugadores alcancen un hito. Como todos los jugadores legítimos solo pueden enviar incrementos de 0.5 ether, this.balance ya no sería un número medio entero, ya que también tendría la contribución de 0.1 ether. Esto evita que se cumplan todas las condiciones if en las líneas [18], [21] y [24].
+
+Aún peor, un atacante vengativo que perdió un hito, podría enviar forzosamente 10 ether (o una cantidad equivalente de ether que empuje el saldo del contrato por encima del hito final) lo que bloquearía todas las recompensas en el contrato para siempre. Esto se debe a que la función claimReward() siempre revertirá, debido al require en la línea [32] (es decir, this.balance es mayor que finalMileStone).
+
+### Técnicas preventivas
+Esta vulnerabilidad surge típicamente del mal uso de **this.balance**. La lógica del contrato, cuando sea posible, debería evitar depender de valores exactos del saldo del contrato porque pueden ser manipulados artificialmente. Si se aplica lógica basada en **this.balance**, asegúrese de tener en cuenta los saldos inesperados.
+
+*Si se requieren valores exactos de ether depositados, se debe utilizar una variable definida por el usuario que se incrementa en funciones pagables, para realizar un seguimiento seguro del ether depositado. Esta variable no se verá influenciada por el ether forzado enviado a través de una llamada selfdestruct().*
+
+Teniendo esto en cuenta, una versión corregida del contrato EtherGame podría verse así:
+
+```
 contract EtherGame {
-    uint public targetAmount = 7 ether;
-    address public winner;
-
-    function deposit() public payable {
-        require(msg.value == 1 ether, "You can only send 1 ether");
-        uint balance = address(this).balance + msg.value;
-        require(balance <= targetAmount, "Game is over");
-        if (balance == targetAmount) {
-            winner = msg.sender;
+    
+    uint public payoutMileStone1 = 3 ether;
+    uint public mileStone1Reward = 2 ether;
+    uint public payoutMileStone2 = 5 ether;
+    uint public mileStone2Reward = 3 ether; 
+    uint public finalMileStone = 10 ether; 
+    uint public finalReward = 5 ether; 
+    uint public depositedWei;
+    
+    mapping (address => uint) redeemableEther;
+    
+    function play() public payable {
+        require(msg.value == 0.5 ether);
+        uint currentBalance = depositedWei + msg.value;
+        // ensure no players after the game as finished
+        require(currentBalance <= finalMileStone);
+        if (currentBalance == payoutMileStone1) {
+            redeemableEther[msg.sender] += mileStone1Reward;
         }
+        else if (currentBalance == payoutMileStone2) {
+            redeemableEther[msg.sender] += mileStone2Reward;
+        }
+        else if (currentBalance == finalMileStone ) {
+            redeemableEther[msg.sender] += finalReward;
+        }
+        depositedWei += msg.value;
+        return;
     }
-
+    
     function claimReward() public {
-        require(msg.sender == winner, "Only winner can claim the reward");
-        (bool sent, ) = msg.sender.call{value: address(this).balance}("");
-        require(sent, "Failed to send Ether");
+        // ensure the game is complete
+        require(depositedWei == finalMileStone);
+        // ensure there is a reward to give
+        require(redeemableEther[msg.sender] > 0); 
+        redeemableEther[msg.sender] = 0;
+        msg.sender.transfer(redeemableEther[msg.sender]);
     }
-
-    function reset() public {
-        require(msg.sender == winner, "Only winner can reset the game");
-        winner = address(0);
-        targetAmount = targetAmount + 1 ether;
-    }
-
-    function getBalance() public view returns (uint) {
-        return address(this).balance;
-    }
-}
-```
-Este contrato tiene una variable pública llamada "targetAmount" que se establece en 7 ether. Los usuarios pueden enviar ether al contrato utilizando la función "deposit()", siempre y cuando envíen exactamente 1 ether. Si el balance del contrato alcanza los 7 ether, el jugador que realizó el último depósito se convierte en el ganador y puede reclamar la recompensa utilizando la función "claimReward()". El contrato también tiene una función "reset()" que solo el ganador puede usar para reiniciar el juego.
-
-El problema con este contrato es que no tiene ningún mecanismo para evitar que alguien realice un ataque de "Forcefully Send Ether with selfdestruct". Un atacante podría crear un contrato malicioso que envíe 1 ether al contrato "EtherGame" y luego utilice la función selfdestruct() para destruir su propio contrato y enviar los fondos restantes a una dirección de su elección. Esto resultaría en una pérdida de fondos para el contrato "EtherGame".
-
-Aquí hay un ejemplo de código de un contrato malicioso que podría ser utilizado para llevar a cabo este tipo de ataque:  
-
-```
-pragma solidity ^0.8.0;
-
-contract MaliciousContract {
-    address public ethergameAddress;
-
-    constructor(address _ethergameAddress) {
-        ethergameAddress = _ethergameAddress;
-    }
-
-    function sendEther() public payable {
-        (bool sent, ) = ethergameAddress.call{value: 1 ether}("");
-        require(sent, "Failed to send Ether");
-        selfdestruct(msg.sender);
-    }
-}
+ }
 ```
 
-Este contrato recibe la dirección del contrato "EtherGame" en su constructor y tiene una función pública llamada "sendEther()" que envía 1 ether al contrato "EtherGame" y luego se destruye a sí mismo utilizando la función selfdestruct(). Como resultado, el ether restante en el contrato "MaliciousContract" se envía a la dirección del creador del contrato.
-
-Para llevar a cabo el ataque, el atacante simplemente necesita desplegar el contrato "MaliciousContract" y pasar la dirección del contrato "EtherGame" como argumento en el constructor. Luego, llama a la función "sendEther()" del contrato "MaliciousContract" para enviar 1 ether al contrato "EtherGame" y, a continuación, el contrato "MaliciousContract" se destruye y envía los fondos restantes a la dirección del atacante.
-
-Para proteger el contrato "EtherGame" contra este tipo de ataque, se puede agregar un modificador a la función "deposit()" que asegure que el contrato no reciba ether de contratos (para evitar que el contrato malicioso interactúe con él):  
-
-```
-modifier notContract() {
-    require(msg.sender == tx.origin, "Contracts not allowed");
-    _;
-}
-
-function deposit() public payable notContract {
-    require(msg.value == 1 ether, "You can only send 1 ether");
-    uint balance = address(this).balance + msg.value;
-    require(balance <= targetAmount, "Game is over");
-    if (balance == targetAmount) {
-        winner = msg.sender;
-    }
-}
-```
-
-Este modificador asegura que la dirección del remitente sea la dirección que inició la transacción original (tx.origin) y no la dirección de un contrato. De esta manera, se evita que el contrato malicioso interactúe con el contrato "EtherGame" y se protege contra este tipo de ataque.
-
-En resumen, el ataque "Forcefully Send Ether with selfdestruct" aprovecha la función selfdestruct() de Solidity para enviar fondos a una dirección de destino y luego eliminar el código del contrato. Para proteger un contrato contra este tipo de ataque, se debe asegurar que el contrato no acepte ether de contratos maliciosos utilizando un modificador en la función de depósito o implementando otros mecanismos de seguridad adecuados.  
-
-Para verificar si la dirección del propietario es válida o no, puedes usar la función isContract() de Solidity. Esta función toma una dirección como argumento y devuelve un valor booleano que indica si la dirección es una dirección de contrato o no.
-
-```
-    function isContract(address _addr) internal view returns (bool) {
-        uint256 size;
-        assembly { size := extcodesize(_addr) }
-        return size > 0;
-    }
-```
-
-La función isContract() es una función auxiliar que utiliza la instrucción extcodesize de Solidity para verificar el tamaño del código del contrato en la dirección especificada. Si el tamaño es mayor que cero, entonces se considera que la dirección es una dirección de contrato.  
-
-```
-require(!isContract(_recipient), "Invalid recipient address");
-```
-
+Aquí hemos creado una nueva variable, depositedEther, que realiza un seguimiento del ether depositado conocido, y es esta variable la que utilizamos para realizar nuestras exigencias y pruebas. Ya no tenemos ninguna referencia a **this.balance**.
 
 
 ### :nerd_face: Función selfDestruct  
