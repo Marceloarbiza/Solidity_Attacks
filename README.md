@@ -290,4 +290,23 @@ Este modificador asegura que la dirección del remitente sea la dirección que i
 
 En resumen, el ataque "Forcefully Send Ether with selfdestruct" aprovecha la función selfdestruct() de Solidity para enviar fondos a una dirección de destino y luego eliminar el código del contrato. Para proteger un contrato contra este tipo de ataque, se debe asegurar que el contrato no acepte ether de contratos maliciosos utilizando un modificador en la función de depósito o implementando otros mecanismos de seguridad adecuados.
 
+### :nerd_face: Función selfDestruct  
+
+La función selfdestruct() es una función incorporada en Solidity que permite destruir un contrato y enviar los fondos restantes a una dirección de destino.  
+
+La sintaxis de la función selfdestruct es la siguiente:  
+
+```
+function selfdestruct(address payable recipient) external  
+```  
+
+Donde "recipient" es la dirección a la que se envían los fondos restantes después de la destrucción del contrato.
+
+Cuando se llama a la función selfdestruct, el contrato se elimina de la blockchain y todos los fondos que quedan en el contrato se envían a la dirección de destino. La eliminación del contrato significa que ya no se puede acceder a él y que los datos almacenados en el contrato se pierden para siempre. Es importante tener en cuenta que una vez que se llama a la función selfdestruct, no se puede deshacer la eliminación del contrato.
+
+La función selfdestruct se puede utilizar en situaciones en las que se desea eliminar un contrato una vez que ha cumplido su propósito y se han transferido todos los fondos. Por ejemplo, si un contrato se utiliza para recaudar fondos para una organización benéfica, una vez que se hayan transferido todos los fondos a la organización, se puede utilizar la función selfdestruct para eliminar el contrato y transferir los fondos restantes a la dirección de la organización.
+
+Sin embargo, también se puede utilizar la función selfdestruct de manera maliciosa para eliminar contratos y robar fondos. Un atacante podría crear un contrato malicioso que utilice la función selfdestruct para enviar los fondos a una dirección de su propiedad en lugar de la dirección prevista.
+
+Es importante tener en cuenta que la función selfdestruct no es una herramienta de seguridad por sí sola y debe utilizarse con precaución. Es importante que los contratos que utilizan la función selfdestruct sean auditados cuidadosamente para asegurarse de que se utiliza de manera segura y no se expone a vulnerabilidades.
 
