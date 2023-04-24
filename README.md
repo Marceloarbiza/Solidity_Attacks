@@ -288,7 +288,25 @@ function deposit() public payable notContract {
 
 Este modificador asegura que la dirección del remitente sea la dirección que inició la transacción original (tx.origin) y no la dirección de un contrato. De esta manera, se evita que el contrato malicioso interactúe con el contrato "EtherGame" y se protege contra este tipo de ataque.
 
-En resumen, el ataque "Forcefully Send Ether with selfdestruct" aprovecha la función selfdestruct() de Solidity para enviar fondos a una dirección de destino y luego eliminar el código del contrato. Para proteger un contrato contra este tipo de ataque, se debe asegurar que el contrato no acepte ether de contratos maliciosos utilizando un modificador en la función de depósito o implementando otros mecanismos de seguridad adecuados.
+En resumen, el ataque "Forcefully Send Ether with selfdestruct" aprovecha la función selfdestruct() de Solidity para enviar fondos a una dirección de destino y luego eliminar el código del contrato. Para proteger un contrato contra este tipo de ataque, se debe asegurar que el contrato no acepte ether de contratos maliciosos utilizando un modificador en la función de depósito o implementando otros mecanismos de seguridad adecuados.  
+
+Para verificar si la dirección del propietario es válida o no, puedes usar la función isContract() de Solidity. Esta función toma una dirección como argumento y devuelve un valor booleano que indica si la dirección es una dirección de contrato o no.
+
+```
+    function isContract(address _addr) internal view returns (bool) {
+        uint256 size;
+        assembly { size := extcodesize(_addr) }
+        return size > 0;
+    }
+```
+
+La función isContract() es una función auxiliar que utiliza la instrucción extcodesize de Solidity para verificar el tamaño del código del contrato en la dirección especificada. Si el tamaño es mayor que cero, entonces se considera que la dirección es una dirección de contrato.  
+
+```
+require(!isContract(_recipient), "Invalid recipient address");
+```
+
+
 
 ### :nerd_face: Función selfDestruct  
 
