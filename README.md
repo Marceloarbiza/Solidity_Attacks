@@ -202,3 +202,92 @@ Ahora que el precio del auto se ha establecido en 10 ETH, el atacante envía otr
 La transacción del atacante se incluye en la red antes que cualquier otra transacción pendiente para comprar el auto, por lo que el atacante compra el auto por menos de 10 ETH.
 
 En resumen, el ataque se ejecuta aprovechando la ventaja que tiene el atacante de conocer la próxima transacción que se ejecutará en la red y enviando transacciones con comisiones más altas para asegurarse de que su transacción se incluya antes que la original.
+
+## :boom: Frontrunner attack  
+
+Este tipo de ataque se basa en la función selfdestruct() de Solidity, que permite a un contrato eliminar su propio código y enviar todos sus fondos a una dirección de destino.  
+
+```
+pragma solidity ^0.8.0;
+
+contract EtherGame {
+    uint public targetAmount = 7 ether;
+    address public winner;
+
+    function deposit() public payable {
+        require(msg.value == 1 ether, "You can only send 1 ether");
+        uint balance = address(this).balance + msg.value;
+        require(balance <= targetAmount, "Game is over");
+        if (balance == targetAmount) {
+            winner = msg.sender;
+        }
+    }
+
+    function claimReward() public {
+        require(msg.sender == winner, "Only winner can claim the reward");
+        (bool sent, ) = msg.sender.call{value: address(this).balance}("");
+        require(sent, "Failed to send Ether");
+    }
+
+    function reset() public {
+        require(msg.sender == winner, "Only winner can reset the game");
+        winner = address(0);
+        targetAmount = targetAmount + 1 ether;
+    }
+
+    function getBalance() public view returns (uint) {
+        return address(this).balance;
+    }
+}
+```
+Este contrato tiene una variable pública llamada "targetAmount" que se establece en 7 ether. Los usuarios pueden enviar ether al contrato utilizando la función "deposit()", siempre y cuando envíen exactamente 1 ether. Si el balance del contrato alcanza los 7 ether, el jugador que realizó el último depósito se convierte en el ganador y puede reclamar la recompensa utilizando la función "claimReward()". El contrato también tiene una función "reset()" que solo el ganador puede usar para reiniciar el juego.
+
+El problema con este contrato es que no tiene ningún mecanismo para evitar que alguien realice un ataque de "Forcefully Send Ether with selfdestruct". Un atacante podría crear un contrato malicioso que envíe 1 ether al contrato "EtherGame" y luego utilice la función selfdestruct() para destruir su propio contrato y enviar los fondos restantes a una dirección de su elección. Esto resultaría en una pérdida de fondos para el contrato "EtherGame".
+
+Aquí hay un ejemplo de código de un contrato malicioso que podría ser utilizado para llevar a cabo este tipo de ataque:  
+
+```
+pragma solidity ^0.8.0;
+
+contract MaliciousContract {
+    address public ethergameAddress;
+
+    constructor(address _ethergameAddress) {
+        ethergameAddress = _ethergameAddress;
+    }
+
+    function sendEther() public payable {
+        (bool sent, ) = ethergameAddress.call{value: 1 ether}("");
+        require(sent, "Failed to send Ether");
+        selfdestruct(msg.sender);
+    }
+}
+```
+
+Este contrato recibe la dirección del contrato "EtherGame" en su constructor y tiene una función pública llamada "sendEther()" que envía 1 ether al contrato "EtherGame" y luego se destruye a sí mismo utilizando la función selfdestruct(). Como resultado, el ether restante en el contrato "MaliciousContract" se envía a la dirección del creador del contrato.
+
+Para llevar a cabo el ataque, el atacante simplemente necesita desplegar el contrato "MaliciousContract" y pasar la dirección del contrato "EtherGame" como argumento en el constructor. Luego, llama a la función "sendEther()" del contrato "MaliciousContract" para enviar 1 ether al contrato "EtherGame" y, a continuación, el contrato "MaliciousContract" se destruye y envía los fondos restantes a la dirección del atacante.
+
+Para proteger el contrato "EtherGame" contra este tipo de ataque, se puede agregar un modificador a la función "deposit()" que asegure que el contrato no reciba ether de contratos (para evitar que el contrato malicioso interactúe con él):  
+
+```
+modifier notContract() {
+    require(msg.sender == tx.origin, "Contracts not allowed");
+    _;
+}
+
+function deposit() public payable notContract {
+    require(msg.value == 1 ether, "You can only send 1 ether");
+    uint balance = address(this).balance + msg.value;
+    require(balance <= targetAmount, "Game is over");
+    if (balance == targetAmount) {
+        winner = msg.sender;
+    }
+}
+```
+
+Este modificador asegura que la dirección del remitente sea la dirección que inició la transacción original (tx.origin) y no la dirección de un contrato. De esta manera, se evita que el contrato malicioso interactúe con el contrato "EtherGame" y se protege contra este tipo de ataque.
+
+En resumen, el ataque "Forcefully Send Ether with selfdestruct" aprovecha la función selfdestruct() de Solidity para enviar fondos a una dirección de destino y luego eliminar el código del contrato. Para proteger un contrato contra este tipo de ataque, se debe asegurar que el contrato no acepte ether de contratos maliciosos utilizando un modificador en la función de depósito o implementando otros mecanismos de seguridad adecuados.
+
+
