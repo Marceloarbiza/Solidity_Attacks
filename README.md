@@ -374,3 +374,5 @@ contract HashForEther {
 Este contrato simple está diseñado para actuar como un juego de recompensas de adivinanzas de direcciones. Para ganar el saldo del contrato, un usuario debe generar una dirección de Ethereum cuyos últimos 8 caracteres hexadecimales sean 0. Una vez obtenida, puede llamar a la función  WithdrawWinnings()para obtener su recompensa.
 
 Lamentablemente, no se ha especificado la visibilidad de las funciones. En particular, la función **_sendWinnings()** es publica y, por lo tanto, cualquier dirección puede llamar a esta función para robar la recompensa.
+
+Link: https://hacken.io/discover/most-common-smart-contract-attacks/
