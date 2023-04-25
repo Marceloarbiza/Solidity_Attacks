@@ -132,9 +132,11 @@ Repo: https://github.com/meta-dapp/reentracy
 
 En Solidity, las variables enteras tienen un rango de valores permitidos, que depende del tipo de variable. Por ejemplo, el tipo **uint8** tiene un rango de valores permitidos de 0 a 255, mientras que el tipo **uint256** tiene un rango de valores permitidos de 0 a 2^256-1.
 
+Por ejemplo, para uint8, el número máximo es 255, y si le agrega 1 más, la variable se desbordará y será igual a 0 (si agrega 2, entonces la variable sería 1).
+
 El ataque de desbordamiento de enteros se produce cuando se manipula una variable para que su valor exceda el rango permitido. Esto puede provocar que la variable se desborde y tome un valor incorrecto, lo que puede causar comportamientos inesperados o incluso el bloqueo del contrato.
 
-Por ejemplo, considera el siguiente contrato de Solidity que permite a un usuario apostar en un juego de dados:
+Considera el siguiente contrato de Solidity que permite a un usuario apostar en un juego de dados:
 
 ```
 contract JuegoDeDados {
