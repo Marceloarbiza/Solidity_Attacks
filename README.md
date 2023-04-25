@@ -378,3 +378,15 @@ Este contrato simple está diseñado para actuar como un juego de recompensas de
 Lamentablemente, no se ha especificado la visibilidad de las funciones. En particular, la función **_sendWinnings()** es publica y, por lo tanto, cualquier dirección puede llamar a esta función para robar la recompensa.
 
 Link: https://hacken.io/discover/most-common-smart-contract-attacks/
+
+## :boom: Entropy Illusion
+
+Todas las transacciones en la cadena de bloques de Ethereum son operaciones de transición de estado deterministas. Lo que significa que cada transacción modifica el estado global del ecosistema Ethereum y lo hace de manera calculable y sin incertidumbre. En última instancia, esto significa que dentro del ecosistema de la cadena de bloques no hay ninguna fuente de entropía o aleatoriedad. No hay ninguna función rand() en Solidity. Lograr una entropía descentralizada (aleatoriedad) es un problema bien establecido.
+
+Algunos programadores están tratando de escribir sus propias funciones "aleatorias", pero como no están muy familiarizados con el ecosistema de ETH, se equivocan; como resultado, aparecen vulnerabilidades.
+
+------------------------------------
+
+**Link complete:** https://github.com/sigp/solidity-security-blog#dc-example
+Link: https://hacken.io/discover/most-common-smart-contract-attacks/
+Link: https://medium.com/hackernoon/hackpedia-16-solidity-hacks-vulnerabilities-their-fixes-and-real-world-examples-f3210eba5148
