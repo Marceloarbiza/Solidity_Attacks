@@ -345,3 +345,32 @@ Sin embargo, también se puede utilizar la función selfdestruct de manera malic
 
 Es importante tener en cuenta que la función selfdestruct no es una herramienta de seguridad por sí sola y debe utilizarse con precaución. Es importante que los contratos que utilizan la función selfdestruct sean auditados cuidadosamente para asegurarse de que se utiliza de manera segura y no se expone a vulnerabilidades.
 
+
+## :boom: Default Visibilities
+
+La visibilidad predeterminada es un ejemplo de cumplimiento inadecuado de los estándares de codificación.
+
+Las funciones en Solidity tienen especificadores de visibilidad que dictan cómo se les permite llamarlas. La visibilidad determina si una función puede ser llamada externamente por usuarios, por otros contratos derivados, solo internamente o solo externamente. La visibilidad predeterminada para las funciones es [public]. Por lo tanto, las funciones que no especifican ninguna visibilidad pueden ser llamadas por usuarios externos.
+
+La visibilidad predeterminada se convierte en un problema cuando los desarrolladores ignoran los especificadores de visibilidad en funciones que deberían ser privadas (o solo invocables dentro del propio contrato). Es una buena práctica especificar la visibilidad de todas las funciones en un contrato, incluso si están diseñadas para ser públicas.
+
+Consideremos el siguiente contrato:
+
+```
+contract HashForEther {
+    
+    function withdrawWinnings() {
+        // Winner if the last 8 hex characters of the address are 0. 
+        require(uint32(msg.sender) == 0);
+        _sendWinnings();
+     }
+     
+     function _sendWinnings() {
+         msg.sender.transfer(this.balance);
+     }
+}
+```
+
+Este contrato simple está diseñado para actuar como un juego de recompensas de adivinanzas de direcciones. Para ganar el saldo del contrato, un usuario debe generar una dirección de Ethereum cuyos últimos 8 caracteres hexadecimales sean 0. Una vez obtenida, puede llamar a la función  WithdrawWinnings()para obtener su recompensa.
+
+Lamentablemente, no se ha especificado la visibilidad de las funciones. En particular, la función *_sendWinnings()* es publica y, por lo tanto, cualquier dirección puede llamar a esta función para robar la recompensa.
