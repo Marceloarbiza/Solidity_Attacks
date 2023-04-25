@@ -388,5 +388,8 @@ Algunos programadores están tratando de escribir sus propias funciones "aleator
 ------------------------------------
 
 **Link complete:** https://github.com/sigp/solidity-security-blog#dc-example  
+
 Link: https://hacken.io/discover/most-common-smart-contract-attacks/  
+
 Link: https://medium.com/hackernoon/hackpedia-16-solidity-hacks-vulnerabilities-their-fixes-and-real-world-examples-f3210eba5148  
+
